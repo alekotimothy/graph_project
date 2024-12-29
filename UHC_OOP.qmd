@@ -224,20 +224,19 @@ counts = (
 # Create a grouped bar chart
 fig_bar = px.bar(
     counts,
-    x="WHO_Region", 
+    x="WHO_Region",
     y="Count",  # Counts on the y-axis
-    color="UHC_service_Coverage_Index_Categories", 
+    color="UHC_service_Coverage_Index_Categories",
     barmode="group",  # Grouped bars
     title="Distribution of UHC_service_Coverage_Index by WHO_Region",
     labels={"Count": "Number of countries"},
 )
 fig_bar.update_layout(
     margin=dict(l=40, r=40, t=40, b=40),  # Adjust margins
-    legend=dict(yanchor="top", y=1.0, xanchor="left", x=0.30)  # Move the legend if needed
+    legend=dict(
+        yanchor="top", y=1.0, xanchor="left", x=0.30
+    ),  # Move the legend if needed
 )
-
-# Show the plot
-fig_bar.show()
 
 ```
 #### insight
