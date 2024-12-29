@@ -1,0 +1,487 @@
+---
+title: "Tracking Progress Toward Universal Health Coverage; Insights from Service Coverage and Financial Protection"  
+format: dashboard
+author: "Aleko Timothy" 
+theme:
+      - Flatly
+      - styles/UHC_dash.scss
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+import plotly.express as px
+from country_converter import CountryConverter
+import country_converter as cc
+import itables
+from itables import show
+
+# loading data sets
+OOP_exp = pd.read_csv(
+    r"C:\Users\timot\OneDrive\Desktop\graph_project\data\oope_current.csv"
+)
+uhc = pd.read_csv(
+    r"C:\Users\timot\OneDrive\Desktop\graph_project\data\sh_uhc_srvs_cv_xd (2).csv"
+)
+who_regions=pd.read_excel(r"C:\Users\timot\OneDrive\Desktop\graph_project\data\WHO Country Region List.xlsx")
+```
+
+
+```{python}
+# Melting data to the LOng formart
+OOP_exp_long=pd.melt(OOP_exp, id_vars="country", var_name="year", value_name="perc_out_of_pocket_health_exp").sort_values("year")
+
+uhc_long=pd.melt(uhc, id_vars="country", var_name="year", value_name="uhc_service_coverage_index").sort_values("year")
+```
+
+```{python} 
+# filtering for 2021,
+OOP_exp_long_2021 = OOP_exp_long.query("year=='2021'").sort_values("country")
+uhc_long_2021 = uhc_long.query("year=='2021'").sort_values("country")
+
+# checking for the difference in data sets for countries
+oop_set = set(OOP_exp_long_2021["country"])
+uhc_set = set(uhc_long_2021["country"])
+
+# merging the two data sets
+df_merged = pd.merge(OOP_exp_long_2021, uhc_long_2021) 
+
+df_merged_all_years =pd.merge(OOP_exp_long,uhc_long )
+```
+
+```{python}
+# categorising the universal health coverage index
+def UHC_cat(UHC_index):
+    if UHC_index >= 80:
+        return "HIgh Coverage"
+    elif UHC_index >= 50:
+        return "Moderate Coverage"
+    elif UHC_index <= 49:
+        return "Low Coverage"
+    else:
+        return "Uncategorised"
+
+UHC_cat = np.vectorize(UHC_cat)
+
+df_merged["UHC_service_Coverage_Index_Categories"] = UHC_cat(
+    df_merged["uhc_service_coverage_index"]
+)
+
+
+# categorising out of pocket expenditure
+def OOP_cat(OOP):
+    if OOP >= 40:
+        return "HIgh  OOP Expenditure"
+    elif OOP >= 20:
+        return "Moderate  OOP Expenditure"
+    elif OOP <= 19:
+        return "Low OOP Expenditure"
+    else:
+        return "Uncategorised"
+
+
+OOP_cat = np.vectorize(OOP_cat)
+
+df_merged["OOP_exp_Categories"] = OOP_cat(df_merged["perc_out_of_pocket_health_exp"])
+
+
+# adding countries into rspective regions  WHO region
+# getting country codes
+df_merged["country_code"] = cc.convert(df_merged["country"], to="ISO3")
+df_merged_all_years["country_code"] = cc.convert(
+    df_merged_all_years["country"], to="ISO3"
+)
+
+who_regions["country_code"] = cc.convert(who_regions["Country"], to="ISO3")
+who_regions = who_regions.drop(columns=["IncomeGroupCountry", "Country"])
+
+
+# merging who regions and df_merged
+df_merged = pd.merge(df_merged, who_regions)
+df_merged_all_years = pd.merge(
+    df_merged_all_years, who_regions, on="country_code", how="left"
+)
+# renaming the reional codes into their full form
+who_regions = {
+    "AFR": "Africa",
+    "AMR": "Americas",
+    "EMR": "Eastern Mediterranean ",
+    "EUR": "European",
+    "SEAR": "South-East Asia",
+    "WPR": "Western Pacific",
+}
+
+df_merged["WHO_Region"] = df_merged["Region"].replace(who_regions)
+df_merged_all_years["WHO_Region"] = df_merged_all_years["Region"].replace(who_regions)
+```
+
+
+
+
+
+# Universal Health Coverage Index:
+
+```{python}
+# visualisations of universal health coverage:
+UHC_map = px.choropleth(
+    df_merged,
+    locations="country_code",
+    color="uhc_service_coverage_index",
+    hover_name="country",
+    title="Map of countries by Universal Health Coverage Index",
+    color_continuous_scale="Greens",
+)
+# content for value boxes
+# highest UHC,
+highest_UHC = (
+    df_merged.sort_values("uhc_service_coverage_index", ascending=False)
+    .head(1)
+    .squeeze()
+)
+highest_UHC_country = highest_UHC["country"]
+highest_UHC_value = int(highest_UHC["uhc_service_coverage_index"])
+
+
+# lowest UHC
+lowest_UHC = (
+    df_merged.sort_values("uhc_service_coverage_index", ascending=True)
+    .head(1)
+    .squeeze()
+)
+lowest_UHC_country = lowest_UHC["country"]
+lowest_UHC_value = lowest_UHC["uhc_service_coverage_index"]
+
+
+
+# AVERAGE HEALTH COVERAGE BY WHO _REGION
+avg_uhc_by_region = (
+    df_merged.groupby("WHO_Region")["uhc_service_coverage_index"].mean().reset_index()
+)
+
+# percentage of  countries fall under low coverage, high coverage
+percentages_UHC = (
+    df_merged["UHC_service_Coverage_Index_Categories"].value_counts(normalize=True)
+    * 100
+).round(1)
+
+# Getting total number of countries in this data set
+number_of_countries = df_merged.shape[0]
+```
+
+
+
+
+
+## Row 1 {height=20%}
+::: {.valuebox icon="globe-europe-africa" color="#1E90FF" title="Global Data on:"}
+`{python} number_of_countries`
+
+Countries 
+
+:::
+
+
+```{python}
+# highest UHC,
+highest_UHC = (
+    df_merged.sort_values("uhc_service_coverage_index", ascending=False)
+    .head(1)
+    .squeeze()
+)
+highest_UHC_country = highest_UHC["country"]
+highest_UHC_value = highest_UHC["uhc_service_coverage_index"]
+
+```
+::: {.valuebox icon="graph-up-arrow" color="#008B8B" title="Highest universal health coverage"} 
+`{python} str(highest_UHC_value)`%
+
+`{python} highest_UHC_country`
+
+
+:::
+::: {.valuebox icon="graph-down-arrow" color="#4682B4" title="Lowest universal health coverage"}
+`{python} str(lowest_UHC_value)`%
+
+`{python} lowest_UHC_country`
+
+
+:::
+::: {.valuebox icon="exclamation-circle" color="#FF0000" title="Current Status"}
+77.8%
+
+Below UHC index of 80 or more
+:::
+
+## Row 2 {height=80%}
+### {width=60%}
+```{python}
+# | title: UHC Map
+UHC_map
+```
+### {.tabset width=40%}
+#### Grouped regional UHC distribution
+```{python}
+counts = (
+    df_merged.groupby(["WHO_Region", "UHC_service_Coverage_Index_Categories"])
+    .size()
+    .reset_index(name="Count")
+)
+
+# Create a grouped bar chart
+fig = px.bar(
+    counts,
+    x="WHO_Region", 
+    y="Count",  # Counts on the y-axis
+    color="UHC_service_Coverage_Index_Categories", 
+    barmode="group",  # Grouped bars
+    title="Distribution of UHC_service_Coverage_Index by WHO_Region",
+    labels={"Count": "Number of countries"},
+)
+
+# Show the plot
+fig.show()
+
+```
+#### insight
+The Map of Countries by Universal Health Coverage (UHC) Service Coverage Index highlights the disparities in essential health service coverage globally. Darker green shades represent higher UHC service coverage, commonly observed in high-income regions such as Europe and parts of North America, where strong healthcare systems and government support prevail. In contrast, Sub-Saharan Africa and parts of South Asia are characterized by lower UHC indices, reflecting challenges like resource limitations, inadequate infrastructure, and workforce shortages. Encouragingly, some middle-income countries in Latin America and Southeast Asia demonstrate moderate-to-high UHC scores, suggesting progress through targeted public health policies and investments. These variations emphasize the urgent need for tailored interventions to bridge global gaps in healthcare access and equity.
+
+The bar chart illustrates the distribution of countries across different UHC (Universal Health Coverage) Service Coverage Index categories—Low Coverage, Moderate Coverage, and High Coverage—grouped by their respective WHO regions. Africa predominantly exhibits Low Coverage, reflecting challenges in achieving widespread health service access, with few countries attaining Moderate and no country attaining High Coverage. In contrast, the Americas and Eastern Mediterranean regions show a balanced distribution, with a notable number of countries in the Moderate Coverage category, indicating gradual progress. The European and Western Pacific regions are dominated by High Coverage countries, highlighting their strong health systems and better access to services. South-East Asia displays a limited number of countries, primarily concentrated in Moderate Coverage. These disparities emphasize regional inequities in health coverage, underscoring the need for targeted interventions in low-performing regions like Africa to enhance health equity and universal health access.
+
+
+
+
+
+
+# Out of Pocket Expenditure
+
+
+```{python}
+# visualisations of percentage out of pocket of health expeniture:
+
+# content for value boxes
+# highest_OOP,
+highest_OOP = (
+    df_merged.sort_values("perc_out_of_pocket_health_exp", ascending=False)
+    .head(1)
+    .squeeze()
+)
+highest_OOP_country = highest_OOP["country"]
+highest_OOP_value = highest_OOP["perc_out_of_pocket_health_exp"]
+
+# lowest_OOP
+lowest_OOP = (
+    df_merged.sort_values("perc_out_of_pocket_health_exp", ascending=True)
+    .head(1)
+    .squeeze()
+)
+lowest_OOP_country = lowest_OOP["country"]
+lowest_OOP_value = lowest_OOP["perc_out_of_pocket_health_exp"]
+
+
+# percentage of  countries fall under low _OOP, high _OOP
+percentages_OOP = (
+    df_merged["OOP_exp_Categories"].value_counts(normalize=True) * 100
+).round(1)
+
+
+# AVERAGE oop_expenditure BY WHO _REGION
+
+Box_plot_oop_expenditure_WHO_REGION = px.box(
+    df_merged,
+    color="WHO_Region",
+    title="Out of Pocket Expenditure (percentage of current health expenditure) WHO _regions",
+    x="WHO_Region",
+    y="perc_out_of_pocket_health_exp",
+    points="all"
+).update_layout(showlegend=False)
+```
+
+
+## Row 1 {height=20%}
+::: {.valuebox icon="graph-up-arrow" color="#008B8B" title="Highest Out of Pocket Expenditure"}
+`{python} str(highest_OOP_value)`%
+
+`{python} highest_OOP_country`
+
+:::
+
+::: {.valuebox icon="graph-down-arrow" color="#4682B4" title="Lowest Out of Pocket Expenditure"} 
+`{python} str(lowest_OOP_value)`%
+
+`{python} lowest_OOP_country`
+
+:::
+
+
+::: {.valuebox icon="exclamation-circle" color="#FF0000" title="Current status"}
+66.7%
+
+Have more than 20%  OOP of
+total health expenditure
+:::
+
+## Row 2 {height=80%}
+
+### { .tabset width=80%}
+#### 2021 Regional Out of Pocket Expenditure 
+```{python}
+# oop_map
+Box_plot_oop_expenditure_WHO_REGION
+```
+#### 2000 - 2021 trend of Out of Pocket Expenditure
+```{python}
+# | title: Area Plot illustrating the global trend ofout-of-pocket health expenditures across WHO regions
+px.area(
+    df_merged_all_years,
+    x="year",
+    y="perc_out_of_pocket_health_exp",
+    color="WHO_Region",
+    line_group="country",
+)
+
+```
+
+### {width=20%}
+
+```{python}
+# | title: OOP Description and Insights
+```
+
+
+The **Box Plot of Out-of-Pocket (OOP) Expenditure** illustrates financial
+protection challenges in healthcare across regions. European countries exhibit the lowest 
+median OOP expenditure, demonstrating the success of robust financial protection mechanisms 
+such as universal insurance schemes and government-funded systems. Unlike, 
+regions like Africa and South-East Asia that bear higher median OOP expenditures, 
+this may illustrate the financial burden individuals face in accessing healthcare services,
+often leading to catastrophic health spending. 
+Notably, the Eastern Mediterranean region shows significant variability, 
+with some countries heavily reliant on private funding.
+These findings highlight the critical need for reforms, 
+particularly in regions with high OOP expenditure, 
+to strengthen social health insurance systems and reduce financial barriers to healthcare.
+
+The **Area Plot** The chart illustrates the global progress in reducing 
+out-of-pocket health expenditures across WHO regions from 2000 to 2021, 
+a key indicator of financial protection under universal health coverage (UHC). 
+Overall, there is a clear downward trend, reflecting global efforts to reduce financial barriers to healthcare access.
+However, significant regional disparities remain evident. Africa and the Western Pacific contribute the largest shares to out-of-pocket expenditures, 
+although both show gradual declines, suggesting ongoing but incomplete reforms in health financing.
+In contrast, regions like Europe have smaller, more stable contributions,
+indicating stronger financial protection mechanisms. Notable periods of steeper decline, 
+such as between 2005 and 2010, align with global initiatives like the Millennium Development Goals (MDGs),
+while slower progress post-2015 coincides with the transition to Sustainable Development Goals (SDGs). 
+Despite these advancements, the persistence of high out-of-pocket expenditures in certain regions underscores the need for targeted interventions, 
+such as expanding health insurance coverage, increasing government health spending, and improving equity in healthcare access.
+Achieving UHC will require sustained efforts to address these disparities and ensure financial protection for all populations.
+
+
+
+# Relationship
+```{python}
+# visualisations of relationship:
+relationship_scatter = px.scatter(
+    df_merged,
+    x="perc_out_of_pocket_health_exp",
+    y="uhc_service_coverage_index",
+    color="WHO_Region",
+    size="uhc_service_coverage_index",
+    title="Map of countries by out of pocket expenditure (percentage of current health expenditure)",
+    hover_name="country"
+)
+```
+
+## Row 1 {height=30%}
+### {widith=70%}
+```{python}
+# | title: Table of countries highlighting Universal Health Coverage and Out of Pocket expenditure scores
+df_merged_summary=df_merged.drop(columns=["perc_out_of_pocket_health_exp","uhc_service_coverage_index","year","country_code","Region"])
+show(df_merged_summary)
+```
+
+## Row 2 {height=70%}
+
+### {.tabset width=70%}
+#### Global
+
+```{python}
+# relationship_scatter
+df_merged_all_years = df_merged_all_years.dropna(subset=["WHO_Region"])
+fig = px.scatter(
+    df_merged,
+    x="uhc_service_coverage_index",
+    y="perc_out_of_pocket_health_exp",
+    color="WHO_Region",
+    hover_name="country",
+    title= "Relationship between Universal Healt Coverage Index and Out of Pocket Expenditure as a Percentantage of Total Health Expenditure",
+    log_x=False,
+    size_max=54,
+    range_x=[10, 100],
+    range_y=[10, 100],
+    labels={"uhc_service_coverage_index": "UHC_Index"},
+)
+fig.update_layout(
+    xaxis=dict(scaleanchor="x"),  # Tie the x-axis scale to the y-axis
+)
+```
+
+#### Select countries:
+
+```{python}
+df_merged_all_years_countries = df_merged_all_years.dropna(subset=["WHO_Region"])
+# Define the list of ISO3 codes
+iso3_codes = ["UGA", "BRA", "IND", "DEU", "EGY", "JPN"]
+
+# Filter the DataFrame using the `isin` method
+df_merged_all_years_countries = df_merged_all_years_countries.query("country_code in @iso3_codes")
+```
+
+```{python}
+fig_countries = px.scatter(
+    df_merged_all_years_countries,
+    x="uhc_service_coverage_index",
+    y="perc_out_of_pocket_health_exp",
+    color="country",
+    hover_name="country",
+    log_x=False,
+    animation_frame="year",
+    animation_group="country",
+    size="perc_out_of_pocket_health_exp",
+    range_x=[10, 100],
+    range_y=[1, 100],
+    labels={"uhc_service_coverage_index": "UHC_Index"},
+    
+)
+fig_countries
+```
+
+### {width=30%}
+
+```{python}
+# | title: Association at a Glance
+```
+The **Scatter Plot of UHC Service Coverage and OOP Expenditure** reveals an inverse relationship between the two metrics, 
+where higher service coverage is typically associated with lower OOP expenditure. This trend underscores the importance of financial protection in achieving universal health coverage.
+European countries cluster prominently in the high-service coverage and low-OOP expenditure zone, reflecting efficient and equitable healthcare systems. In contrast,
+African countries display lower UHC indices and higher OOP expenditure,
+revealing systemic gaps in both service provision and financial protection.
+Interestingly, some outliers in the Western Pacific and South-East Asia regions demonstrate high UHC service coverage yet substantial OOP expenditure,
+suggesting areas where financial mechanisms lag behind service delivery. 
+These insights call for a balanced approach to achieving UHC by simultaneously improving service availability and implementing robust financial protection strategies.
+
+
+# DATA DOWNLOAD
+
+```{python}
+# displaying full data set
+itables.show(
+    df_merged_all_years,
+    caption="UHC Service Coverage and OOP Expenditure Data Set",
+    buttons="csvHtml5",
+)
+```
+
+
+
+
+
