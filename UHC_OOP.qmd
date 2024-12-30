@@ -229,15 +229,11 @@ fig_bar = px.bar(
     color="UHC_service_Coverage_Index_Categories",
     barmode="group",  # Grouped bars
     title="Distribution of UHC_service_Coverage_Index by WHO_Region",
-    labels={"Count": "Number of countries"},
+    labels={"Count": "Number of countries", "UHC_service_Coverage_Index_Categories":"UHC_Categories" },
 )
 fig_bar.update_layout(
-    margin=dict(l=40, r=40, t=40, b=40),  # Adjust margins
-    legend=dict(
-        yanchor="top", y=1.0, xanchor="left", x=0.30
-    ),  # Move the legend if needed
+    margin=dict(l=20, r=20, t=20, b=20),  # Adjust margins
 )
-
 ```
 #### insight
 The Map of Countries by Universal Health Coverage (UHC) Service Coverage Index highlights the disparities in essential health service coverage globally. Darker green shades represent higher UHC service coverage, commonly observed in high-income regions such as Europe and parts of North America, where strong healthcare systems and government support prevail. In contrast, Sub-Saharan Africa and parts of South Asia are characterized by lower UHC indices, reflecting challenges like resource limitations, inadequate infrastructure, and workforce shortages. Encouragingly, some middle-income countries in Latin America and Southeast Asia demonstrate moderate-to-high UHC scores, suggesting progress through targeted public health policies and investments. These variations emphasize the urgent need for tailored interventions to bridge global gaps in healthcare access and equity.
@@ -289,7 +285,8 @@ Box_plot_oop_expenditure_WHO_REGION = px.box(
     title="Out of Pocket Expenditure (percentage of current health expenditure) WHO _regions",
     x="WHO_Region",
     y="perc_out_of_pocket_health_exp",
-    points="all"
+    points="all",
+    hover_data="country"
 ).update_layout(showlegend=False)
 ```
 
@@ -328,16 +325,16 @@ Box_plot_oop_expenditure_WHO_REGION
 #### 2000 - 2021 trend of Out of Pocket Expenditure
 ```{python}
 # | title: Area Plot illustrating the global trend ofout-of-pocket health expenditures across WHO regions
-px.area(
+area_plot=px.area(
     df_merged_all_years,
     x="year",
     y="perc_out_of_pocket_health_exp",
     color="WHO_Region",
     line_group="country",
 ).update_layout(
-    margin=dict(l=40, r=40, t=40, b=40),  # Adjust margins
-    legend=dict(yanchor="top", y=1.0, xanchor="left", x=1.0)  # Move the legend if needed
+    margin=dict(l=20, r=20, t=20, b=20),  # Adjust margins
 )
+area_plot
 ```
 
 ### {width=20%}
@@ -386,10 +383,12 @@ relationship_scatter = px.scatter(
     color="WHO_Region",
     size="uhc_service_coverage_index",
     title="Map of countries by out of pocket expenditure (percentage of current health expenditure)",
-    hover_name="country"
+    hover_name="country",
 ).update_layout(
     margin=dict(l=40, r=40, t=40, b=40),  # Adjust margins
-    legend=dict(yanchor="top", y=1.0, xanchor="left", x=1.0)  # Move the legend if needed
+    legend=dict(
+        yanchor="top", y=1.0, xanchor="left", x=1.0
+    ),  # Move the legend if needed
 )
 ```
 
